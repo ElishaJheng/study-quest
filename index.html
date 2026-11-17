@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>讀書大冒險 Study Quest</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#29366f">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="讀書大冒險">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -508,7 +516,7 @@ function finishFocus(){
 }
 
 /* =================== views =================== */
-let pickSel=null;let view='home',planTab='day',planDate=today(),parentOK=false;const NF={};let pinBuf='';
+let pickSel=null;let deferredInstall=null;let view='home',planTab='day',planDate=today(),parentOK=false;const NF={};let pinBuf='';
 function hud(){
   const lv=lvOf(S.player.xp),xi=S.player.xp%100;
   return `<section class="px panel hud"><div class="hero bob">${hero(lv)}</div><div class="hudinfo">
@@ -614,9 +622,18 @@ V.set=()=>{
     <div class="row"><span style="flex:none">音效音量</span><input type="range" min="0" max="100" value="${Math.round(st.sfx*100)}" data-vol="sfx"></div>
     <div class="row"><span>試聽音效</span><span><button class="btn sm white" data-act="test" data-s="done" data-sfx="none">完成</button><button class="btn sm white" data-act="test" data-s="level" data-sfx="none">升級</button><button class="btn sm white" data-act="test" data-s="badge" data-sfx="none">徽章</button></span></div>
     <div class="lbl">我的冒險者名字</div><input type="text" id="nameIn" maxlength="10" value="${esc(S.player.name)}"><button class="btn green" data-act="saveName">儲存名字</button></section>
+    <section class="px panel"><h2>📱 加入主畫面</h2>${installHTML()}</section>
     <section class="px panel"><h2>👨‍👩‍👧 家長專區</h2><div class="sub">查看讀書狀況、核准兌換、管理獎勵（需要密碼，預設 0000）</div>
     <button class="btn blue wide" data-act="openParent">進入家長畫面</button></section>`;
 };
+function installHTML(){
+  const standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+  if(standalone)return '<div class="sub">✔ 已經是 App 模式了！沒有網路也可以使用。</div>';
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(deferredInstall)return '<div class="sub">把讀書大冒險放到主畫面，打開就像 App 一樣，沒網路也能用！</div><button class="btn green wide" data-act="install">⬇ 加入主畫面</button>';
+  if(ios)return '<div class="sub">在 Safari 點下方的「分享」按鈕 <b>⬆</b>，再選「<b>加入主畫面</b>」就完成囉！</div>';
+  return '<div class="sub">在瀏覽器選單（右上角 ⋮）選「<b>安裝應用程式</b>」或「<b>加到主畫面</b>」就可以了。</div>';
+}
 V.pick=()=>{
   const sel=avOf(pickSel);
   return `<section class="px panel" style="text-align:center"><h2>⚔ 選擇你的英雄 ⚔</h2><div class="sub">點英雄看看他的招牌台詞！選好後就<b style="color:var(--r)">不能再更換</b>喔，要想清楚～</div>
@@ -735,6 +752,7 @@ const A={
       <p>你已經選了「${avOf(S.player.avatar).name}」當你的英雄，<br>不能再更換囉！一起陪他升級吧！</p></div><div class="mact"><button class="btn green" data-act="close">好的！</button></div>`)},
   heroReset(){modal(`<h3>讓孩子重新選英雄？</h3><p>孩子下次打開時，會回到「選擇你的英雄」畫面重新挑選（等級、金幣不受影響）。</p><div class="mact"><button class="btn gray" data-act="close" data-sfx="back">取消</button><button class="btn red" data-act="heroResetOK">確定</button></div>`)},
   heroResetOK(){S.player.avatar=null;S.player.avatarLocked=false;pickSel=null;save();closeModal();floatText('已解除鎖定');render()},
+  install(){if(!deferredInstall)return;deferredInstall.prompt();deferredInstall.userChoice.then(r=>{deferredInstall=null;if(r&&r.outcome==='accepted'){confetti();floatText('已加入主畫面！')}render()}).catch(()=>{})},
   tgl(el){const k=el.dataset.k;S.settings[k]=!S.settings[k];applyVol();save();if(k==='musicOn'&&!S.settings.musicOn)stopMusic();render()},
   test(el){SFX.play(el.dataset.s)},
   saveName(){const v=($('#nameIn').value||'').trim();if(!v){SFX.play('error');return}S.player.name=v;save();floatText('已儲存');render()},
@@ -774,6 +792,9 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{if(e.target.dataset.vol==='sfx')SFX.play('click')});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='nfT'){e.preventDefault();A.nfOK()}});
 
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;if(view==='set')render()});
+window.addEventListener('appinstalled',()=>{deferredInstall=null});
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
 $('#startHero').innerHTML=`<div class="bob">${hero(lvOf(S.player.xp))}</div>`;
 render();
 })();
