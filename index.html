@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>讀書計劃排一排 Study Quest</title>
+<title>讀書計畫排一排 Study Quest</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#29366f">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="讀書計劃排一排">
+<meta name="apple-mobile-web-app-title" content="讀書計畫排一排">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -189,6 +189,7 @@ input[type=range]{width:100%;accent-color:var(--r);height:30px}
 .big4 .av{font-size:18px;padding:14px 4px}
 .say{background:#fff4d6;margin:18px 4px 6px;padding:12px;font-size:20px;animation:pop .18s steps(3)}
 body.picking #nav{display:none}
+body.picking #app{display:block}
 body.picking #main{padding-bottom:30px}
 .avs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;margin-top:8px}
 .av{background:#fff;border:none;cursor:pointer;box-shadow:var(--edge);margin:4px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;touch-action:manipulation}
@@ -261,9 +262,9 @@ body.picking #main{padding-bottom:30px}
 <div id="start" data-act="startGame" data-sfx="none">
   <div id="startHero"></div>
   <div class="t1">STUDY<br>QUEST</div>
-  <div class="t2">讀書計劃排一排</div>
+  <div class="t2">讀書計畫排一排</div>
   <div class="go">▶ 點一下開始</div>
-  <small style="color:var(--s)">哇~完成會有獎勵喔！</small>
+  <small style="color:var(--s)">請好好努力！加油~</small>
 </div>
 
 <script>
@@ -633,7 +634,7 @@ function installHTML(){
   const standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
   if(standalone)return '<div class="sub">✔ 已經是 App 模式了！沒有網路也可以使用。</div>';
   const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(deferredInstall)return '<div class="sub">把讀書計劃排一排放到主畫面，打開就像 App 一樣，沒網路也能用！</div><button class="btn green wide" data-act="install">⬇ 加入主畫面</button>';
+  if(deferredInstall)return '<div class="sub">把讀書計畫排一排放到主畫面，打開就像 App 一樣，沒網路也能用！</div><button class="btn green wide" data-act="install">⬇ 加入主畫面</button>';
   if(ios)return '<div class="sub">在 Safari 點下方的「分享」按鈕 <b>⬆</b>，再選「<b>加入主畫面</b>」就完成囉！</div>';
   return '<div class="sub">在瀏覽器選單（右上角 ⋮）選「<b>安裝應用程式</b>」或「<b>加到主畫面</b>」就可以了。</div>';
 }
