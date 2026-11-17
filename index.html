@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>讀書大冒險 Study Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --k:#1a1c2c; --p:#5d275d; --r:#b13e53; --o:#ef7d57; --y:#ffcd75; --l:#a7f070; --g:#38b764; --t:#257179;
+  --n:#29366f; --b:#3b5dc9; --c:#41a6f6; --a:#73eff7; --w:#f4f4f4; --s:#94b0c2; --d:#566c86; --e:#333c57;
+  --edge: 0 -4px 0 0 var(--k), 0 4px 0 0 var(--k), -4px 0 0 0 var(--k), 4px 0 0 0 var(--k);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:'DotGothic16', 'PingFang TC','Microsoft JhengHei', system-ui, sans-serif;
+  color:var(--k); font-size:17px; line-height:1.45;
+  background:linear-gradient(180deg,
+    var(--n) 0 8%, var(--b) 8% 22%, var(--c) 22% 45%, var(--a) 45% 70%, #b8f6fa 70% 100%) fixed;
+  min-height:100vh; -webkit-font-smoothing:none;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+.n{font-family:'Press Start 2P', monospace; font-size:.72em; letter-spacing:0}
+.spr{display:block;image-rendering:pixelated}
+h2{font-size:21px;margin:0}
+small{font-size:14px}
+
+/* ---- clouds ---- */
+.clouds{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.cloud{position:absolute;width:8px;height:8px;background:var(--w);opacity:.85;
+  box-shadow:8px 0 var(--w),16px 0 var(--w),24px 0 var(--w),8px -8px var(--w),16px -8px var(--w),
+  -8px 8px var(--w),0 8px var(--w),8px 8px var(--w),16px 8px var(--w),24px 8px var(--w),32px 8px var(--w);
+  animation:drift 60s linear infinite}
+@keyframes drift{from{transform:translateX(-80px)}to{transform:translateX(110vw)}}
+
+/* ---- layout ---- */
+#app{position:relative;z-index:1}
+#main{max-width:880px;margin:0 auto;padding:18px 14px 120px}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:space-around;
+  background:var(--k);padding:6px 4px calc(6px + env(safe-area-inset-bottom));border-top:4px solid var(--y)}
+.navb{flex:1;background:none;border:none;color:var(--w);display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 2px;cursor:pointer;font-size:14px;touch-action:manipulation}
+.navb .spr{width:26px;height:26px}
+.navb.on{background:var(--y);color:var(--k)}
+.navb:active{transform:translateY(2px)}
+.navlogo{display:none}
+@media (min-width:860px){
+  #app{display:grid;grid-template-columns:190px 1fr}
+  #nav{position:sticky;top:0;height:100vh;flex-direction:column;justify-content:flex-start;gap:6px;
+    border-top:none;border-right:4px solid var(--y);padding:16px 10px}
+  .navb{flex:none;flex-direction:row;gap:10px;padding:10px 12px;font-size:17px;justify-content:flex-start}
+  .navlogo{display:block;color:var(--y);text-align:center;margin:4px 0 18px;font-size:13px;line-height:1.8}
+  #main{padding:28px 24px 40px}
+}
+
+/* ---- pixel panels & buttons ---- */
+.px{box-shadow:var(--edge), 0 10px 0 0 rgba(26,28,44,.35);margin:4px 4px 22px}
+.panel{background:var(--w);padding:16px}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sub{color:var(--d);font-size:15px;margin:2px 0 8px}
+.btn{border:none;cursor:pointer;background:var(--bg,var(--y));color:var(--fg,var(--k));min-height:44px;padding:8px 16px;margin:6px 4px;
+  box-shadow:var(--edge), inset -4px -4px 0 0 rgba(0,0,0,.22), inset 4px 4px 0 0 rgba(255,255,255,.45);
+  touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.btn:active{transform:translateY(3px);box-shadow:var(--edge), inset 4px 4px 0 0 rgba(0,0,0,.25)}
+.btn.sm{min-height:40px;padding:4px 10px;font-size:15px}
+.btn.wide{display:block;width:calc(100% - 8px);margin-top:14px}
+.btn.green{--bg:var(--g);--fg:var(--w)}
+.btn.blue{--bg:var(--b);--fg:var(--w)}
+.btn.red{--bg:var(--r);--fg:var(--w)}
+.btn.gray{--bg:var(--s)}
+.btn.white{--bg:var(--w)}
+.btn.on{--bg:var(--l)}
+.btn[disabled]{opacity:.45}
+.chips{display:flex;flex-wrap:wrap;gap:2px;margin:4px 0 8px}
+.lbl{font-size:15px;color:var(--d);margin-top:10px}
+input[type=text],input[type=number],textarea{width:100%;background:#fff;border:none;padding:10px;margin:6px 0;
+  box-shadow:var(--edge), inset 3px 3px 0 0 var(--s);outline:none;border-radius:0}
+input:focus,textarea:focus{box-shadow:var(--edge), inset 3px 3px 0 0 var(--c)}
+input[type=range]{width:100%;accent-color:var(--r);height:30px}
+
+/* ---- HUD ---- */
+.hud{display:flex;gap:16px;align-items:center;background:var(--n);color:var(--w)}
+.hero{background:var(--b);padding:8px;box-shadow:var(--edge)}
+.hero .spr{width:84px;height:98px}
+.bob{animation:bob 1s steps(2) infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.hudinfo{flex:1;min-width:0}
+.pname{font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lv{background:var(--y);color:var(--k);padding:4px 6px}
+.bar{height:20px;background:var(--e);box-shadow:var(--edge);margin:10px 4px 4px;position:relative}
+.bar>i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--l) 0 12px,var(--g) 12px 15px);transition:width .4s steps(8)}
+.bar.mini{height:12px;margin:6px 4px 12px}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.stat{display:flex;align-items:center;gap:6px}
+.stat .spr{width:22px;height:22px}
+
+/* ---- tasks ---- */
+.tasks{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.task{display:flex;align-items:center;gap:10px;background:#fff;padding:8px;box-shadow:var(--edge);margin:4px}
+.sb{width:42px;height:42px;flex:none;display:grid;place-items:center;color:#fff;font-size:22px;
+  box-shadow:inset -3px -3px 0 rgba(0,0,0,.3), inset 3px 3px 0 rgba(255,255,255,.3)}
+.tt{flex:1;min-width:0}
+.tt b{display:block;font-weight:normal;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tt small{color:var(--d)}
+.check{width:46px;font-size:22px;--bg:var(--w)}
+.task.done{background:#e6f7d9}
+.task.done .tt b{text-decoration:line-through;color:var(--d)}
+.task.done .check{--bg:var(--g);--fg:var(--w)}
+.empty{text-align:center;color:var(--d);padding:14px 0}
+.clear{margin-top:14px;text-align:center;background:var(--y);padding:10px;box-shadow:var(--edge);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{background:var(--o);color:var(--w)}}
+.msg{background:#fff4d6;cursor:pointer}
+.msg p{font-size:20px;margin:6px 0}
+.goal{display:flex;align-items:center;gap:10px;padding:6px 0}
+.goal.done span{text-decoration:line-through;color:var(--d)}
+
+/* ---- plan ---- */
+.tabs{display:flex;gap:4px;margin-bottom:12px}
+.tabs .btn{flex:1}
+.dnav{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px}
+.dnav .t{text-align:center;flex:1;font-size:19px}
+.week{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:640px){.week{grid-template-columns:repeat(7,1fr);gap:8px}}
+.wday{background:#fff;box-shadow:var(--edge);margin:4px;padding:6px;min-height:80px;display:flex;flex-direction:column}
+.wday.today{background:#fff4d6}
+.wday h4{margin:0 0 4px;font-weight:normal;font-size:15px;display:flex;justify-content:space-between;cursor:pointer}
+.wchip{font-size:13px;color:#fff;padding:2px 4px;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wchip.done{opacity:.5;text-decoration:line-through}
+.wadd{margin-top:auto;background:none;border:2px dashed var(--s);color:var(--d);cursor:pointer;padding:2px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .hd{text-align:center;color:var(--d);font-size:14px}
+.cell{aspect-ratio:1/1;background:#fff;box-shadow:0 0 0 3px var(--k);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:13px;cursor:pointer;border:none;padding:0;margin:3px}
+.cell.all{background:var(--g);color:#fff}
+.cell.part{background:var(--y)}
+.cell.miss{background:var(--r);color:#fff}
+.cell.todo{background:var(--a)}
+.cell.today{outline:3px dashed var(--r);outline-offset:3px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:14px;margin-top:12px}
+.legend i{display:inline-block;width:14px;height:14px;margin-right:4px;vertical-align:-2px;box-shadow:0 0 0 2px var(--k)}
+
+/* ---- focus ---- */
+.focus{text-align:center}
+.ftime{font-family:'Press Start 2P',monospace;font-size:clamp(40px,12vw,72px);margin:16px 0;color:var(--k);
+  text-shadow:4px 4px 0 var(--y)}
+.blocks{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;margin:12px 4px}
+.blocks i{height:22px;background:var(--e)}
+.blocks i.f{background:var(--l);box-shadow:inset -3px -3px 0 var(--g)}
+.fhero{display:flex;justify-content:center;margin:8px}
+.fhero .spr{width:96px;height:112px}
+
+/* ---- rewards ---- */
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.item{background:#fff;box-shadow:var(--edge);margin:4px;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.item .spr{width:56px;height:40px}
+.price{display:flex;align-items:center;gap:4px}
+.price .spr{width:18px;height:18px}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px}
+.badge{text-align:center;padding:8px 4px;background:#fff;box-shadow:var(--edge);margin:4px;cursor:pointer}
+.badge .spr{width:48px;height:58px;margin:0 auto 4px}
+.badge.lock .spr{filter:grayscale(1) brightness(.6);opacity:.5}
+.badge.lock{color:var(--s)}
+.badge b{display:block;font-weight:normal;font-size:15px}
+.hist{font-size:15px}
+.hist div{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:2px dashed var(--s)}
+.tag{padding:0 6px;font-size:13px}
+.tag.wait{background:var(--y)} .tag.ok{background:var(--g);color:#fff} .tag.no{background:var(--s)}
+
+/* ---- settings ---- */
+.quote{font-size:14px;color:var(--y);margin-top:2px}
+.av.off .avimg{filter:grayscale(.8);opacity:.6}
+.big4{grid-template-columns:repeat(2,1fr)!important}
+@media (min-width:640px){.big4{grid-template-columns:repeat(4,1fr)!important}}
+.big4 .spr{width:84px;height:98px}
+.big4 .av{font-size:18px;padding:14px 4px}
+.say{background:#fff4d6;margin:18px 4px 6px;padding:12px;font-size:20px;animation:pop .18s steps(3)}
+body.picking #nav{display:none}
+body.picking #main{padding-bottom:30px}
+.avs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;margin-top:8px}
+.av{background:#fff;border:none;cursor:pointer;box-shadow:var(--edge);margin:4px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;touch-action:manipulation}
+.av .avimg{background:var(--b);padding:6px;box-shadow:inset -3px -3px 0 rgba(0,0,0,.25)}
+.av .spr{width:52px;height:60px}
+.av.on{background:var(--y);box-shadow:var(--edge),0 0 0 8px var(--r)}
+.av.on .spr{animation:bob 1s steps(2) infinite}
+.av:active{transform:translateY(3px)}
+.av small{font-size:12px;color:var(--r)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:2px dashed var(--s)}
+.row:last-child{border-bottom:none}
+
+/* ---- parent ---- */
+.pbar{display:flex;align-items:center;justify-content:space-between;background:var(--p);color:var(--w)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.kpi{background:#fff;box-shadow:var(--edge);margin:4px;padding:10px;text-align:center}
+.kpi .v{font-family:'Press Start 2P',monospace;font-size:20px;margin:6px 0;color:var(--b)}
+.hbar{display:flex;align-items:center;gap:8px;margin:8px 0}
+.hbar .nm{width:44px;flex:none}
+.hbar .tr{flex:1;height:18px;background:#e3e8ee}
+.hbar .tr i{display:block;height:100%}
+.hbar .val{width:70px;text-align:right;font-size:14px}
+.vbars{display:flex;align-items:flex-end;gap:8px;height:150px;padding:8px 4px 0;border-bottom:4px solid var(--k)}
+.vb{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;position:relative}
+.vb .pl{width:100%;background:#d4dbe3;position:relative}
+.vb .dn{position:absolute;left:0;right:0;bottom:0;background:var(--g)}
+.vlab{display:flex;gap:8px;padding:4px}
+.vlab span{flex:1;text-align:center;font-size:13px}
+.req{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:2px dashed var(--s)}
+
+/* ---- modal, toast, start ---- */
+#modal .ov{position:fixed;inset:0;background:rgba(26,28,44,.75);z-index:50;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+.mbox{width:100%;max-width:440px;animation:pop .18s steps(3)}
+@keyframes pop{from{transform:scale(.6)}to{transform:scale(1)}}
+.mbox h3{margin:0 0 8px;font-size:22px}
+.mact{display:flex;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.big{text-align:center}
+.big .spr{margin:8px auto}
+.shake{animation:shake .3s steps(4)}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pin{display:flex;justify-content:center;gap:12px;margin:10px 0 14px}
+.pin i{width:36px;height:42px;background:#fff;box-shadow:var(--edge);display:grid;place-items:center;font-style:normal;font-size:24px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.float{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:60;pointer-events:none;font-family:'Press Start 2P',monospace;
+  font-size:16px;color:var(--y);text-shadow:3px 3px 0 var(--k),-2px -2px 0 var(--k),2px -2px 0 var(--k),-2px 2px 0 var(--k);
+  animation:floatup 1.4s steps(14) forwards;white-space:nowrap}
+@keyframes floatup{to{transform:translate(-50%,-70px);opacity:0}}
+.conf{position:fixed;top:-12px;width:10px;height:10px;z-index:55;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+#start{position:fixed;inset:0;z-index:100;background:var(--k);color:var(--w);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;cursor:pointer;text-align:center;padding:20px;
+  background-image:radial-gradient(var(--d) 1px,transparent 1.5px);background-size:28px 28px}
+#start .t1{font-family:'Press Start 2P',monospace;font-size:clamp(22px,6vw,44px);color:var(--y);
+  text-shadow:4px 4px 0 var(--r),8px 8px 0 var(--p);line-height:1.4}
+#start .t2{font-size:clamp(24px,6vw,36px);color:var(--a)}
+#start .go{font-size:22px;animation:blink2 1s steps(2) infinite}
+@keyframes blink2{50%{opacity:0}}
+#start .spr{width:110px;height:128px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div class="clouds" aria-hidden="true">
+  <div class="cloud" style="top:12%;animation-duration:70s;animation-delay:-20s"></div>
+  <div class="cloud" style="top:28%;animation-duration:95s;animation-delay:-60s"></div>
+  <div class="cloud" style="top:50%;animation-duration:80s;animation-delay:-5s"></div>
+</div>
+<div id="app"><nav id="nav"></nav><main id="main"></main></div>
+<div id="modal"></div>
+<div id="start" data-act="startGame" data-sfx="none">
+  <div id="startHero"></div>
+  <div class="t1">STUDY<br>QUEST</div>
+  <div class="t2">讀書大冒險</div>
+  <div class="go">▶ 點一下開始</div>
+  <small style="color:var(--s)">有音樂和音效喔！</small>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* =================== helpers =================== */
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return ymd(d)};
+const today=()=>ymd(new Date());
+const WD=['日','一','二','三','四','五','六'];
+const weekStart=s=>{const d=parse(s);return addDays(s,-((d.getDay()+6)%7))};
+const fmtDate=s=>{const d=parse(s);return `${d.getMonth()+1}月${d.getDate()}日 星期${WD[d.getDay()]}`};
+const uid=()=>Math.random().toString(36).slice(2,10);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* =================== pixel sprites =================== */
+const PAL={k:'#1a1c2c',w:'#f4f4f4',y:'#ffcd75',o:'#ef7d57',r:'#b13e53',p:'#5d275d',g:'#38b764',l:'#a7f070',
+  b:'#3b5dc9',c:'#41a6f6',a:'#73eff7',n:'#29366f',s:'#94b0c2',d:'#566c86',e:'#333c57',t:'#257179',f:'#ffd2a8'};
+function spr(rows,sub){
+  sub=sub||{};const h=rows.length,w=rows[0].length;let r='';
+  rows.forEach((row,y)=>{let x=0;while(x<w){const ch=row[x];if(ch==='.'){x++;continue}let x2=x;while(x2<w&&row[x2]===ch)x2++;
+    r+=`<rect x="${x}" y="${y}" width="${x2-x}" height="1" fill="${sub[ch]||PAL[ch]}"/>`;x=x2}});
+  return `<svg class="spr" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+}
+const AVATARS=[
+  {id:'ninja',name:'塗鴉忍者',say:'一筆畫完今天的功課！',sfx:'h_ninja',sub:{},rows:["...kkkkkk...","..knnnnnnk..",".knnnnnnnnk.",".krrrrrrrrkr",".knnnnnnnnk.",".kffffffffk.",".kfkffffkfk.",
+    ".knnnnnnnnk.","..knnnnnnk.l","...kkkkkk.yo","..knnnnnnkdk",".kfknnnnkfk.",".kkknnnnkkk.","...knk.knk.."]},
+  {id:'space',name:'太空小隊長',say:'3、2、1，讀書任務發射！',sfx:'h_space',sub:{},rows:["...kkkkkk...","..kwwwwwwk..",".kwwwwwwwwk.",".kwkkkkkkwk.",".kwkfkkfkwk.",".kwkffffkwk.",".kwkfoofkwk.",
+    ".kwkkkkkkwk.","..kwwrrwwk..",".skwwwwwwks.",".skwwrrwwks.",".skwwwwwwks.",".yokwk.kwkoy","..o.kk.kk.o."]},
+  {id:'dino',name:'拳擊恐龍寶寶',say:'吼！一拳打倒難題！',sfx:'h_dino',sub:{},rows:["....kkkk....","...kggggk...","..kggggggkk.","..kgkggggggk","..kggggggggk","..kgggwkwkk.","...kgggggk..",
+    "krrkglllgkrr","krrkglllgkrr",".kkkglllgkk.","...kgggggkgk","...kgggggggk","...kgk.kgkk.","...kkk.kkk.."]},
+  {id:'hamster',name:'電光倉鼠',say:'充電完成，閃電出擊！',sfx:'h_hamster',sub:{h:'#ef7d57'},rows:[".kk......kk.","khhk....khhk","khhkkkkkkhhk",".khhhhhhhhk.","khhkhhhhkhhk","khhhhkkhhhhk","krrhhhhhhrrk",
+    ".khhhwwhhhk.","..kkkkkkkk..",".khwwwyywhk.","khhwwyywwhhk",".khwyywwwhk.","..khhkkhhk..","..kkk..kkk.."]},
+];
+const avOf=id=>AVATARS.find(x=>x.id===id);
+const CAPS=['#b13e53','#3b5dc9','#38b764','#5d275d','#ef7d57','#ffcd75'];
+const hero=(lv,id)=>{const a=avOf(id||(S&&S.player.avatar))||AVATARS[0];
+  return spr(a.rows,Object.assign({b:lv>=7?'#5d275d':'#3b5dc9'},a.sub,{r:CAPS[Math.min(5,Math.floor((lv-1)/2))]}))};
+const COIN=spr(["..kkkk..",".kyyyyk.","kywyyyok","kywyyyok","kyyyyyok","kyyyyyok",".kooook.","..kkkk.."]);
+const FLAME=spr(["...k....","..kok...","..kook..",".koyook.","koyyyok.","koyyyyok","koyyyyok",".kkkkkk."]);
+const CHEST=spr([".kkkkkkkk.","kooooooook","kkkkyykkkk","koooyyoook","kooooooook","kooooooook","kkkkkkkkkk"]);
+const MEDAL=c=>spr([".kbk..kbk.",".kbbkkbbk.","..kbbbbk..","...kkkk...","..kkkkkk..",".kmmmmmmk.","kmmwmmmmmk","kmwmmmmmmk","kmmmmmmmmk","kmmmmmmmdk",".kmmmmmmk.","..kkkkkk.."],{m:c});
+const IC={
+  home:spr(["...kk...","..kyyk..",".kyyyyk.","kyyyyyyk",".krrrrk.",".krkkrk.",".krkkrk.",".kkkkkk."]),
+  plan:spr(["kkkkkkkk","krrrrrrk","kkkkkkkk","kwwwwwwk","kwkwkwwk","kwwwwwwk","kwkwkwwk","kkkkkkkk"]),
+  focus:spr(["kkkkkkkk",".kyyyyk.","..kyyk..","...kk...","...kk...","..kwyk..",".kyyyyk.","kkkkkkkk"]),
+  reward:spr([".kkkkkkkk.","kooooooook","kkkkyykkkk","koooyyoook","kooooooook","kkkkkkkkkk"]),
+  set:spr(["...kk...",".kkkkkk.",".kssssk.","kks..skk","kks..skk",".kssssk.",".kkkkkk.","...kk..."]),
+};
+
+/* =================== data =================== */
+const SUBJ=[
+  {id:'chi',name:'國語',ch:'國',c:'#b13e53',tip:['國語習作','寫作文','預習課文','訂正考卷']},
+  {id:'math',name:'數學',ch:'數',c:'#3b5dc9',tip:['數學習作','分數練習','複習考卷','應用題']},
+  {id:'eng',name:'英語',ch:'英',c:'#ef7d57',tip:['背單字','聽英文','英語習作','唸課文']},
+  {id:'sci',name:'自然',ch:'自',c:'#38b764',tip:['自然習作','畫重點','實驗筆記']},
+  {id:'soc',name:'社會',ch:'社',c:'#257179',tip:['社會習作','畫重點','背地圖']},
+  {id:'read',name:'閱讀',ch:'讀',c:'#5d275d',tip:['課外讀物','讀一章故事','寫心得']},
+  {id:'other',name:'其他',ch:'他',c:'#566c86',tip:['練琴','整理書包','運動']},
+];
+const subj=id=>SUBJ.find(s=>s.id===id)||SUBJ[6];
+const BADGES=[
+  {id:'first',name:'初次冒險',desc:'完成第一個任務',c:'#ef7d57',ok:s=>doneCount(s)>=1},
+  {id:'t10',name:'任務達人',desc:'累積完成 10 個任務',c:'#41a6f6',ok:s=>doneCount(s)>=10},
+  {id:'t50',name:'傳說勇者',desc:'累積完成 50 個任務',c:'#ffcd75',ok:s=>doneCount(s)>=50},
+  {id:'s3',name:'三日連勝',desc:'連續 3 天有完成任務',c:'#b13e53',ok:s=>streak(s)>=3},
+  {id:'s7',name:'七日不敗',desc:'連續 7 天有完成任務',c:'#5d275d',ok:s=>streak(s)>=7},
+  {id:'perfect',name:'完美的一天',desc:'一天的任務全部完成',c:'#a7f070',ok:s=>Object.keys(s.bonusDays).length>=1},
+  {id:'planner',name:'小小規劃師',desc:'一週內有 5 天排好任務',c:'#73eff7',ok:s=>{const ws=weekStart(today());let n=0;for(let i=0;i<7;i++)if(s.tasks.some(t=>t.date===addDays(ws,i)))n++;return n>=5}},
+  {id:'focus1',name:'專注之星',desc:'完成一次專注時間',c:'#38b764',ok:s=>s.stats.focus>=1},
+  {id:'focus10',name:'專注大師',desc:'完成 10 次專注時間',c:'#257179',ok:s=>s.stats.focus>=10},
+  {id:'explorer',name:'全科探險家',desc:'完成 5 種不同科目',c:'#3b5dc9',ok:s=>new Set(s.tasks.filter(t=>t.done).map(t=>t.subject)).size>=5},
+  {id:'goal',name:'目標達成',desc:'完成一個月目標',c:'#ef7d57',ok:s=>s.monthGoals.some(g=>g.done)},
+];
+function doneCount(s){return s.tasks.filter(t=>t.done).length}
+function doneOn(s,d){return s.tasks.some(t=>t.date===d&&t.done)}
+function streak(s){let d=today();if(!doneOn(s,d))d=addDays(d,-1);let n=0;while(n<500&&doneOn(s,d)){n++;d=addDays(d,-1)}return n}
+const lvOf=xp=>Math.floor(xp/100)+1;
+
+function blank(){
+  return {v:1,player:{name:'小勇者',xp:0,coins:0},tasks:[],monthGoals:[],bonusDays:{},badges:{},stats:{focus:0},
+    rewards:[{id:uid(),name:'週末多玩 30 分鐘遊戲',cost:50},{id:uid(),name:'晚餐由我決定吃什麼',cost:80},{id:uid(),name:'假日去公園玩',cost:120},{id:uid(),name:'挑一本新書',cost:200}],
+    redeems:[],messages:[],settings:{musicOn:true,sfxOn:true,music:.5,sfx:.7},pin:'0000'};
+}
+function seed(){
+  const s=blank(),t=today();
+  const plan={
+    '-6':[['math','數學習作',30,1],['eng','背單字',15,1],['read','課外讀物',20,1]],
+    '-5':[['chi','國語習作',25,1],['sci','自然習作',20,1]],
+    '-4':[['math','分數練習',20,0],['eng','聽英文',15,0]],
+    '-3':[['soc','社會習作',20,1],['math','應用題',25,1],['read','讀一章故事',20,0]],
+    '-2':[['chi','寫作文',30,1],['eng','英語習作',20,1]],
+    '-1':[['math','複習考卷',30,1],['sci','畫重點',15,1],['other','練琴',20,1]],
+    '0':[['chi','國語習作',25,0],['math','分數練習',20,0],['eng','聽英文',15,0]],
+    '1':[['math','數學習作',25,0],['read','課外讀物',20,0]],
+  };
+  for(const k in plan){const d=addDays(t,+k);plan[k].forEach(([sj,ti,mi,dn])=>s.tasks.push({id:uid(),date:d,subject:sj,title:ti,minutes:mi,done:!!dn}))}
+  const dc=doneCount(s);s.player.xp=dc*20;s.player.coins=dc*10;s.stats.focus=2;s.player.xp+=30;
+  s.monthGoals=[{id:uid(),month:t.slice(0,7),title:'讀完一本課外書',done:false},{id:uid(),month:t.slice(0,7),title:'數學段考準備好',done:false}];
+  s.messages=[{id:uid(),text:'今天也一起加油喔！寫完功課我們去散步 🙂',date:t,read:false}];
+  BADGES.forEach(b=>{if(b.ok(s))s.badges[b.id]=t});
+  return s;
+}
+const KEY='studyquest-v1';
+let S=null;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||S.v!==1)S=seed();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const tasksOn=d=>S.tasks.filter(t=>t.date===d);
+
+/* =================== audio =================== */
+const AU={ctx:null,music:null,sfx:null,noise:null,cur:null,step:0,next:0,iv:null};
+function audioInit(){
+  if(AU.ctx){if(AU.ctx.state==='suspended')AU.ctx.resume();return}
+  const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+  try{AU.ctx=new C()}catch(e){return}
+  AU.music=AU.ctx.createGain();AU.sfx=AU.ctx.createGain();
+  AU.music.connect(AU.ctx.destination);AU.sfx.connect(AU.ctx.destination);
+  const len=AU.ctx.sampleRate*.2,buf=AU.ctx.createBuffer(1,len,AU.ctx.sampleRate),ch=buf.getChannelData(0);
+  for(let i=0;i<len;i++)ch[i]=Math.random()*2-1;AU.noise=buf;
+  applyVol();
+}
+function applyVol(){if(!AU.ctx)return;AU.music.gain.value=S.settings.musicOn?S.settings.music*.6:0;AU.sfx.gain.value=S.settings.sfxOn?S.settings.sfx*.8:0}
+function nf(n){const m=/^([A-G])(#?)(\d)$/.exec(n);const i={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1]]+(m[2]?1:0);return 440*Math.pow(2,((+m[3]+1)*12+i-69)/12)}
+function tone(f,t,dur,type,vol,dest,f2){
+  const c=AU.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+  if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+.03);
+}
+function hat(t,vol,dest){const c=AU.ctx,s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=AU.noise;f.type='highpass';f.frequency.value=7000;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+.05);s.connect(f);f.connect(g);g.connect(dest);s.start(t);s.stop(t+.06)}
+const SFX={play(name){
+  if(!AU.ctx||!S.settings.sfxOn)return;const t=AU.ctx.currentTime+.01,d=AU.sfx,q='square';
+  const seq=(notes,step,type,vol,dur)=>notes.forEach((n,i)=>tone(nf(n),t+i*step,dur||step*1.4,type||q,vol||.12,d));
+  switch(name){
+    case 'click':tone(1046,t,.05,q,.1,d,700);break;
+    case 'nav':seq(['C6','G6'],.045,q,.09);break;
+    case 'back':seq(['G5','C5'],.05,q,.09);break;
+    case 'error':tone(130,t,.22,'sawtooth',.13,d,90);tone(123,t+.02,.22,q,.08,d);break;
+    case 'done':seq(['C5','E5','G5','C6'],.06,q,.11);break;
+    case 'coin':tone(nf('B5'),t,.07,q,.1,d);tone(nf('E6'),t+.07,.3,q,.1,d);break;
+    case 'level':seq(['C5','E5','G5','C6','E6','G6'],.08,q,.11);seq(['G4','C5','E5','G5','C6','E6'],.08,'triangle',.15);
+      setTimeout(()=>SFX.play('coin'),520);break;
+    case 'badge':seq(['E6','G6','C7','E7','C7','E7'],.05,'triangle',.18,.12);break;
+    case 'start':seq(['C5','G5','C6'],.08,q,.1);break;
+    case 'beep':tone(880,t,.12,q,.1,d);break;
+    case 'finish':seq(['G5','G5','G5','E6','C6'],.1,q,.11);setTimeout(()=>SFX.play('level'),550);break;
+    case 'h_ninja':{const c=AU.ctx,n=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();n.buffer=AU.noise;f.type='bandpass';f.frequency.setValueAtTime(800,t);f.frequency.exponentialRampToValueAtTime(5000,t+.2);
+      g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);n.connect(f);f.connect(g);g.connect(d);n.start(t);n.stop(t+.21);
+      ['C6','E6','G6','B6','D7'].forEach((x,i)=>tone(nf(x),t+.18+i*.045,.08,q,.09,d));break}
+    case 'h_space':tone(150,t,.6,q,.09,d,1400);tone(300,t,.6,'triangle',.12,d,2800);seq(['C6','G6','C7'].map(x=>x),.09,'triangle',.15);break;
+    case 'h_dino':tone(110,t,.12,q,.2,d,50);tone(220,t+.15,.35,'sawtooth',.1,d,140);tone(330,t+.15,.35,q,.06,d,180);break;
+    case 'h_hamster':for(let i=0;i<8;i++)tone(i%2?1800:900,t+i*.035,.04,q,.08,d);seq(['E6','A6','E7'],.06,q,.1);break;
+    case 'lock':seq(['C5','G5','C6','E6','G6','C7'],.07,q,.11);seq(['C4','G4','C5'],.14,'triangle',.18);break;
+    case 'pop':tone(600,t,.08,'triangle',.18,d,1200);break;
+  }
+}};
+const TR={
+  main:{bpm:132,lt:'square',lv:.06,bv:.13,hat:true,ld:.12,
+    lead:['E5','-','G5','-','C6','-','G5','E5', 'A5','-','E5','-','C5','-','E5','-', 'F5','-','A5','-','C6','-','A5','-', 'G5','-','B5','-','D6','C6','B5','G5',
+          'C6','-','B5','C6','G5','-','E5','-', 'A5','-','G5','A5','E5','-','C5','-', 'F5','G5','A5','C6','A5','-','F5','-', 'G5','A5','B5','D6','C6','-','-','-'],
+    bass:'C3 C4 A2 A3 F2 F3 G2 G3 C3 C4 A2 A3 F2 F3 G2 G3'.split(' ')},
+  focus:{bpm:72,lt:'triangle',lv:.09,bv:.12,hat:false,ld:.5,
+    lead:['C5','E5','G5','B5','G5','E5','G5','E5','A4','C5','E5','G5','E5','C5','E5','C5','F4','A4','C5','E5','C5','A4','C5','A4','G4','B4','D5','G5','D5','B4','D5','B4'],
+    bass:'C3 - A2 - F2 - G2 -'.split(' ')}
+};
+function sched(){
+  if(!AU.ctx||!AU.cur)return;const tr=TR[AU.cur],st=60/tr.bpm/2;
+  while(AU.next<AU.ctx.currentTime+.15){
+    const i=AU.step,t=AU.next,L=tr.lead[i%tr.lead.length];
+    if(L&&L!=='-')tone(nf(L),t,tr.ld,tr.lt,tr.lv,AU.music);
+    if(i%4===0||tr.hat){const bi=Math.floor(i/4)%tr.bass.length,B=tr.bass[bi];
+      if(i%4===0&&B&&B!=='-')tone(nf(B),t,st*3.5,'triangle',tr.bv,AU.music);
+      else if(tr.hat&&i%4===2&&B&&B!=='-')tone(nf(B)*2,t,st*1.5,'triangle',tr.bv*.7,AU.music);}
+    if(tr.hat&&i%2===1)hat(t,.05,AU.music);
+    AU.next+=st;AU.step=(AU.step+1)%tr.lead.length;
+  }
+}
+function playMusic(name){
+  if(!AU.ctx)return;
+  if(!S.settings.musicOn){stopMusic();return}
+  if(AU.cur===name&&AU.iv)return;
+  AU.cur=name;AU.step=0;AU.next=AU.ctx.currentTime+.08;
+  if(!AU.iv)AU.iv=setInterval(sched,25);
+}
+function stopMusic(){clearInterval(AU.iv);AU.iv=null;AU.cur=null}
+function syncMusic(){playMusic((view==='focus'||F.running)?'focus':'main')}
+document.addEventListener('visibilitychange',()=>{if(!AU.ctx)return;if(document.hidden)AU.ctx.suspend();else AU.ctx.resume()});
+
+/* =================== effects =================== */
+function floatText(txt){const el=document.createElement('div');el.className='float';el.textContent=txt;document.body.appendChild(el);setTimeout(()=>el.remove(),1500)}
+function confetti(){const cols=['#b13e53','#ef7d57','#ffcd75','#a7f070','#38b764','#41a6f6','#73eff7','#5d275d'];
+  for(let i=0;i<46;i++){const c=document.createElement('div');c.className='conf';c.style.left=Math.random()*100+'vw';c.style.background=cols[i%cols.length];
+    c.style.animationDuration=(1.4+Math.random()*1.6)+'s';c.style.animationDelay=Math.random()*.4+'s';document.body.appendChild(c);setTimeout(()=>c.remove(),3600)}}
+let modalOpen=false;const MQ=[];
+function modal(html,cls){if(modalOpen){MQ.push([html,cls]);return}modalOpen=true;
+  $('#modal').innerHTML=`<div class="ov"><div class="px panel mbox ${cls||''}">${html}</div></div>`}
+function closeModal(){$('#modal').innerHTML='';modalOpen=false;if(MQ.length){const [h,c]=MQ.shift();setTimeout(()=>modal(h,c),180)}}
+function mbox(){return $('#modal .mbox')}
+
+/* =================== game logic =================== */
+function gain(xp,coins,label){
+  const before=lvOf(S.player.xp);S.player.xp+=xp;S.player.coins+=coins;
+  floatText(`+${xp} EXP  +${coins} ●`);
+  setTimeout(()=>SFX.play('coin'),260);
+  const after=lvOf(S.player.xp);
+  if(after>before){setTimeout(()=>{SFX.play('level');confetti();
+    modal(`<div class="big"><h3>LEVEL UP!</h3><div class="hero bob" style="display:inline-block">${hero(after)}</div>
+      <p>恭喜升到 <b class="n">LV ${after}</b>！${after%2===1&&after<=11?'<br>角色的配件換新顏色了！':''}</p></div>
+      <div class="mact"><button class="btn green" data-act="close">太棒了！</button></div>`)},500)}
+}
+function checkBadges(){
+  BADGES.forEach(b=>{if(!S.badges[b.id]&&b.ok(S)){S.badges[b.id]=today();
+    setTimeout(()=>{SFX.play('badge');modal(`<div class="big"><h3>獲得新徽章！</h3><div style="width:80px;margin:0 auto">${MEDAL(b.c)}</div>
+      <p><b>${b.name}</b><br><small>${b.desc}</small></p></div><div class="mact"><button class="btn green" data-act="close">收下</button></div>`)},700)}});
+}
+function completeTask(id){
+  const t=S.tasks.find(x=>x.id===id);if(!t||t.done)return;
+  t.done=true;t.doneAt=Date.now();SFX.play('done');gain(20,10);
+  const ds=tasksOn(t.date);
+  if(ds.length&&ds.every(x=>x.done)&&!S.bonusDays[t.date]&&t.date===today()){
+    S.bonusDays[t.date]=1;setTimeout(()=>{confetti();S.player.coins+=20;floatText('全部完成！+20 ●');SFX.play('level');save();render()},900);
+  }
+  checkBadges();save();render();
+}
+function uncompleteTask(id){const t=S.tasks.find(x=>x.id===id);if(!t||!t.done)return;t.done=false;
+  S.player.xp=Math.max(0,S.player.xp-20);S.player.coins=Math.max(0,S.player.coins-10);SFX.play('back');save();render()}
+
+/* =================== focus timer =================== */
+const F={min:25,taskId:null,running:false,paused:false,endAt:0,left:0,total:0,iv:null,lastBeep:-1};
+function focusTick(){
+  if(!F.running||F.paused)return;
+  F.left=Math.max(0,Math.ceil((F.endAt-Date.now())/1000));
+  if(F.left<=3&&F.left>0&&F.left!==F.lastBeep){F.lastBeep=F.left;SFX.play('beep')}
+  const el=$('#ftime');if(el){el.textContent=mmss(F.left);const fb=$('#fblocks');if(fb)fb.innerHTML=blocks()}
+  if(F.left<=0)finishFocus();
+}
+const mmss=s=>`${pad(Math.floor(s/60))}:${pad(s%60)}`;
+function blocks(){const n=Math.round((1-F.left/F.total)*20);let h='';for(let i=0;i<20;i++)h+=`<i class="${i<n?'f':''}"></i>`;return h}
+function finishFocus(){
+  clearInterval(F.iv);F.running=false;F.paused=false;S.stats.focus++;
+  const t=F.taskId&&S.tasks.find(x=>x.id===F.taskId);
+  SFX.play('finish');confetti();
+  setTimeout(()=>{gain(15,5);checkBadges();save();render()},300);
+  modal(`<div class="big"><h3>專注完成！</h3><div class="hero" style="display:inline-block">${hero(lvOf(S.player.xp))}</div>
+    <p>你專心了 <b class="n">${Math.round(F.total/60)}</b> 分鐘，好厲害！</p>
+    ${t&&!t.done?`<p>任務「${esc(t.title)}」也完成了嗎？</p>`:''}</div>
+    <div class="mact">${t&&!t.done?`<button class="btn gray" data-act="close">還沒</button><button class="btn green" data-act="focusDoneTask" data-id="${t.id}" data-sfx="none">完成任務 ✓</button>`:`<button class="btn green" data-act="close">好耶！</button>`}</div>`);
+}
+
+/* =================== views =================== */
+let pickSel=null;let view='home',planTab='day',planDate=today(),parentOK=false;const NF={};let pinBuf='';
+function hud(){
+  const lv=lvOf(S.player.xp),xi=S.player.xp%100;
+  return `<section class="px panel hud"><div class="hero bob">${hero(lv)}</div><div class="hudinfo">
+    <div class="pname">${esc(S.player.name)} <span class="lv n">LV ${lv}</span></div>${avOf(S.player.avatar)?`<div class="quote">「${avOf(S.player.avatar).say}」</div>`:''}
+    <div class="bar"><i style="width:${xi}%"></i></div><small class="n" style="color:var(--a)">EXP ${xi}/100</small>
+    <div class="stats"><span class="stat">${COIN}<b class="n">${S.player.coins}</b></span>
+    <span class="stat">${FLAME}<b class="n">${streak(S)}</b>天連續</span>
+    <span class="stat">${MEDAL('#ffcd75')}<b class="n">${Object.keys(S.badges).length}</b>徽章</span></div></div></section>`;
+}
+function taskCard(t,del){
+  const s=subj(t.subject);
+  return `<div class="task ${t.done?'done':''}"><div class="sb" style="background:${s.c}">${s.ch}</div>
+    <div class="tt"><b>${esc(t.title)}</b><small>${s.name} · ${t.minutes} 分鐘</small></div>
+    ${!t.done&&t.date===today()?`<button class="btn sm blue" data-act="focusTask" data-id="${t.id}">▶ 專注</button>`:''}
+    ${del?`<button class="btn sm gray" data-act="delTask" data-id="${t.id}" data-sfx="back" aria-label="刪除">✕</button>`:''}
+    <button class="btn sm check" data-act="toggle" data-id="${t.id}" data-sfx="none" aria-label="完成">${t.done?'✔':''}</button></div>`;
+}
+const V={};
+V.home=()=>{
+  const t=today(),ts=tasksOn(t).sort((a,b)=>a.done-b.done),dn=ts.filter(x=>x.done).length;
+  const msg=S.messages.filter(m=>!m.read).slice(-1)[0];
+  const goals=S.monthGoals.filter(g=>g.month===t.slice(0,7));
+  return hud()+
+  (msg?`<div class="px panel msg" data-act="readMsg" data-id="${msg.id}"><b>✉ 爸媽的留言</b><p>${esc(msg.text)}</p><small>點一下收下 ✓</small></div>`:'')+
+  `<section class="px panel"><div class="ph"><h2>⚔ 今日任務</h2><span class="n">${dn}/${ts.length}</span></div>
+   <div class="sub">${fmtDate(t)}</div>${ts.length?`<div class="bar mini"><i style="width:${dn/ts.length*100}%"></i></div>`:''}
+   <div class="tasks">${ts.map(x=>taskCard(x)).join('')||'<p class="empty">今天還沒有任務！<br>按下面的按鈕新增一個吧～</p>'}</div>
+   ${ts.length&&dn===ts.length?'<div class="clear">★ STAGE CLEAR ★ 今天全部完成！</div>':''}
+   <button class="btn wide" data-act="addTask" data-date="${t}">＋ 新增今日任務</button></section>`+
+  `<section class="px panel"><div class="ph"><h2>🏁 本月目標</h2><button class="btn sm white" data-act="go" data-v="plan" data-tab="month" data-sfx="nav">管理</button></div>
+   ${goals.map(g=>`<div class="goal ${g.done?'done':''}"><span>${g.done?'★':'☆'} ${esc(g.title)}</span></div>`).join('')||'<p class="empty">還沒設定本月目標</p>'}</section>`;
+};
+V.plan=()=>{
+  const tabs=`<div class="tabs">${[['day','每日'],['week','每週'],['month','每月']].map(([k,n])=>`<button class="btn ${planTab===k?'on':'white'}" data-act="tab" data-tab="${k}">${n}</button>`).join('')}</div>`;
+  let body='';
+  if(planTab==='day'){
+    const ts=tasksOn(planDate);
+    body=`<div class="dnav"><button class="btn sm" data-act="pd" data-n="-1">◀</button><div class="t">${fmtDate(planDate)}${planDate===today()?'<br><small>(今天)</small>':''}</div><button class="btn sm" data-act="pd" data-n="1">▶</button></div>
+      ${planDate!==today()?'<button class="btn sm white" data-act="pdToday">回到今天</button>':''}
+      <div class="tasks">${ts.map(x=>taskCard(x,true)).join('')||'<p class="empty">這天還沒有任務</p>'}</div>
+      <button class="btn wide" data-act="addTask" data-date="${planDate}">＋ 新增任務</button>
+      ${ts.length?`<button class="btn wide white" data-act="copyNext" data-date="${planDate}">⧉ 複製這天的任務到隔天</button>`:''}`;
+  }else if(planTab==='week'){
+    const ws=weekStart(planDate);
+    body=`<div class="dnav"><button class="btn sm" data-act="pd" data-n="-7">◀</button><div class="t">${fmtDate(ws).replace(/ 星期.*/,'')} ～ ${fmtDate(addDays(ws,6)).replace(/ 星期.*/,'')}</div><button class="btn sm" data-act="pd" data-n="7">▶</button></div>
+      <div class="week">${[0,1,2,3,4,5,6].map(i=>{const d=addDays(ws,i),ts=tasksOn(d),dd=parse(d);
+        return `<div class="wday ${d===today()?'today':''}"><h4 data-act="openDay" data-date="${d}"><span>週${WD[dd.getDay()]} ${dd.getDate()}</span><span class="n">${ts.filter(x=>x.done).length}/${ts.length}</span></h4>
+          ${ts.map(x=>`<div class="wchip ${x.done?'done':''}" style="background:${subj(x.subject).c}">${esc(x.title)}</div>`).join('')}
+          <button class="wadd" data-act="addTask" data-date="${d}">＋</button></div>`}).join('')}</div>
+      <small class="sub">小提醒：週日花 5 分鐘把一週排好，每天只要照著打勾就好！</small>`;
+  }else{
+    const d0=parse(planDate),y=d0.getFullYear(),m=d0.getMonth(),first=new Date(y,m,1),days=new Date(y,m+1,0).getDate(),off=(first.getDay()+6)%7,mk=`${y}-${pad(m+1)}`;
+    let cells='';for(let i=0;i<off;i++)cells+='<div></div>';
+    for(let i=1;i<=days;i++){const d=`${mk}-${pad(i)}`,st=dayStatus(d),n=tasksOn(d).length;
+      cells+=`<button class="cell ${st} ${d===today()?'today':''}" data-act="openDay" data-date="${d}"><span>${i}</span>${n?`<small>${n}項</small>`:''}</button>`}
+    const goals=S.monthGoals.filter(g=>g.month===mk);
+    body=`<div class="dnav"><button class="btn sm" data-act="pm" data-n="-1">◀</button><div class="t">${y} 年 ${m+1} 月</div><button class="btn sm" data-act="pm" data-n="1">▶</button></div>
+      <div class="cal">${['一','二','三','四','五','六','日'].map(w=>`<div class="hd">${w}</div>`).join('')}${cells}</div>${legend()}
+      <h2 style="margin-top:22px">🏁 本月目標</h2><small class="sub">完成一個月目標可以拿 +50 EXP、+30 金幣！</small>
+      ${goals.map(g=>`<div class="goal ${g.done?'done':''}"><button class="btn sm check" data-act="goalT" data-id="${g.id}" data-sfx="none">${g.done?'★':''}</button><span style="flex:1">${esc(g.title)}</span><button class="btn sm gray" data-act="goalDel" data-id="${g.id}" data-sfx="back">✕</button></div>`).join('')||'<p class="empty">還沒有目標</p>'}
+      <input type="text" id="goalIn" placeholder="例如：讀完一本課外書" maxlength="30"><button class="btn green" data-act="goalAdd" data-m="${mk}">＋ 新增目標</button>`;
+  }
+  return `<section class="px panel"><h2 style="margin-bottom:12px">📅 讀書計畫</h2>${tabs}${body}</section>`;
+};
+function dayStatus(d){const ts=tasksOn(d);if(!ts.length)return '';const n=ts.filter(t=>t.done).length;
+  if(n===ts.length)return 'all';if(n>0)return 'part';return d<today()?'miss':'todo'}
+function legend(){return `<div class="legend"><span><i style="background:var(--g)"></i>全部完成</span><span><i style="background:var(--y)"></i>完成一部分</span><span><i style="background:var(--r)"></i>沒有完成</span><span><i style="background:var(--a)"></i>還沒到</span></div>`}
+V.focus=()=>{
+  if(F.running){const t=F.taskId&&S.tasks.find(x=>x.id===F.taskId);
+    return `<section class="px panel focus"><h2>⏳ 專注模式</h2><div class="sub">${t?esc(t.title):'自由專注'}</div>
+      <div class="fhero bob">${hero(lvOf(S.player.xp))}</div><div class="ftime" id="ftime">${mmss(F.left)}</div>
+      <div class="blocks" id="fblocks">${blocks()}</div><p>${F.paused?'暫停中…':'認真讀書中，加油！'}</p>
+      <button class="btn ${F.paused?'green':''}" data-act="fPause">${F.paused?'▶ 繼續':'❚❚ 暫停'}</button><button class="btn gray" data-act="fQuit" data-sfx="back">放棄</button></section>`}
+  const ts=tasksOn(today()).filter(t=>!t.done);
+  return `<section class="px panel focus"><h2>⏳ 專注模式</h2><div class="sub">選一個任務，設定時間，開始專心讀書！完成可得 +15 EXP、+5 金幣</div>
+    <div class="fhero">${hero(lvOf(S.player.xp))}</div>
+    <div class="lbl">要做哪個任務？</div><div class="chips" style="justify-content:center">
+      <button class="btn sm ${!F.taskId?'on':'white'}" data-act="fTask" data-id="">自由專注</button>
+      ${ts.map(t=>`<button class="btn sm ${F.taskId===t.id?'on':'white'}" data-act="fTask" data-id="${t.id}">${esc(t.title)}</button>`).join('')}</div>
+    <div class="lbl">專注多久？</div><div class="chips" style="justify-content:center">
+      ${[1,10,15,25,40].map(m=>`<button class="btn sm ${F.min===m?'on':'white'}" data-act="fMin" data-m="${m}">${m===1?'1 分(試玩)':m+' 分'}</button>`).join('')}</div>
+    <button class="btn green wide" style="font-size:22px" data-act="fStart" data-sfx="none">▶ 開始專注</button></section>`;
+};
+V.reward=()=>{
+  return `<section class="px panel"><div class="ph"><h2>🎁 獎勵商店</h2><span class="stat">${COIN}<b class="n">${S.player.coins}</b></span></div>
+    <div class="sub">用金幣兌換爸媽準備的獎勵！送出後要等爸媽確認喔</div>
+    <div class="shop">${S.rewards.map(r=>`<div class="item">${CHEST}<div>${esc(r.name)}</div><div class="price">${COIN}<b class="n">${r.cost}</b></div>
+      <button class="btn sm ${S.player.coins>=r.cost?'green':'gray'}" data-act="redeem" data-id="${r.id}" data-sfx="none">兌換</button></div>`).join('')||'<p class="empty">爸媽還沒放上獎勵</p>'}</div>
+    ${S.redeems.length?`<h3 style="margin:18px 0 6px">我的兌換紀錄</h3><div class="hist">${S.redeems.slice().reverse().slice(0,8).map(r=>`<div><span>${esc(r.name)} <small class="n">-${r.cost}</small></span>${stTag(r.status)}</div>`).join('')}</div>`:''}</section>
+    <section class="px panel"><div class="ph"><h2>🏅 徽章牆</h2><span class="n">${Object.keys(S.badges).length}/${BADGES.length}</span></div><div class="sub">點徽章看怎麼獲得</div>
+    <div class="badges">${BADGES.map(b=>`<div class="badge ${S.badges[b.id]?'':'lock'}" data-act="badgeInfo" data-id="${b.id}">${MEDAL(b.c)}<b>${S.badges[b.id]?b.name:'？？？'}</b></div>`).join('')}</div></section>`;
+};
+const stTag=s=>s==='wait'?'<span class="tag wait">等爸媽確認</span>':s==='ok'?'<span class="tag ok">已核准 🎉</span>':'<span class="tag no">未核准(已退回金幣)</span>';
+V.set=()=>{
+  const st=S.settings;
+  const lv=lvOf(S.player.xp),cur=S.player.avatar;
+  return `<section class="px panel"><h2>🎮 我的英雄 <span class="tag wait">🔒 已鎖定</span></h2><div class="sub">每升兩級，英雄的配件會換新顏色喔！</div>
+    <div class="avs">${AVATARS.map(a=>`<button class="av ${cur===a.id?'on':'off'}" data-act="avLocked" data-id="${a.id}" data-sfx="none"><span class="avimg">${hero(lv,a.id)}</span><span>${a.name}</span>${cur===a.id?'<small>我的英雄</small>':'<small>🔒</small>'}</button>`).join('')}</div></section>
+    <section class="px panel"><h2>⚙ 設定</h2>
+    <div class="row"><span>♪ 背景音樂</span><button class="btn sm ${st.musicOn?'on':'gray'}" data-act="tgl" data-k="musicOn">${st.musicOn?'開':'關'}</button></div>
+    <div class="row"><span style="flex:none">音樂音量</span><input type="range" min="0" max="100" value="${Math.round(st.music*100)}" data-vol="music"></div>
+    <div class="row"><span>♫ 按鈕音效</span><button class="btn sm ${st.sfxOn?'on':'gray'}" data-act="tgl" data-k="sfxOn">${st.sfxOn?'開':'關'}</button></div>
+    <div class="row"><span style="flex:none">音效音量</span><input type="range" min="0" max="100" value="${Math.round(st.sfx*100)}" data-vol="sfx"></div>
+    <div class="row"><span>試聽音效</span><span><button class="btn sm white" data-act="test" data-s="done" data-sfx="none">完成</button><button class="btn sm white" data-act="test" data-s="level" data-sfx="none">升級</button><button class="btn sm white" data-act="test" data-s="badge" data-sfx="none">徽章</button></span></div>
+    <div class="lbl">我的冒險者名字</div><input type="text" id="nameIn" maxlength="10" value="${esc(S.player.name)}"><button class="btn green" data-act="saveName">儲存名字</button></section>
+    <section class="px panel"><h2>👨‍👩‍👧 家長專區</h2><div class="sub">查看讀書狀況、核准兌換、管理獎勵（需要密碼，預設 0000）</div>
+    <button class="btn blue wide" data-act="openParent">進入家長畫面</button></section>`;
+};
+V.pick=()=>{
+  const sel=avOf(pickSel);
+  return `<section class="px panel" style="text-align:center"><h2>⚔ 選擇你的英雄 ⚔</h2><div class="sub">點英雄看看他的招牌台詞！選好後就<b style="color:var(--r)">不能再更換</b>喔，要想清楚～</div>
+    <div class="avs big4">${AVATARS.map(a=>`<button class="av ${pickSel===a.id?'on':''}" data-act="pickHero" data-id="${a.id}" data-sfx="none"><span class="avimg">${hero(1,a.id)}</span><span>${a.name}</span></button>`).join('')}</div>
+    ${sel?`<div class="say px">「${sel.say}」</div><button class="btn green wide" style="font-size:20px" data-act="pickOK">我選好了：${sel.name}！</button>`:'<p class="empty">↑ 先點一位英雄</p>'}</section>`;
+};
+V.parent=()=>{
+  const ws=weekStart(today()),wd=[...Array(7)].map((_,i)=>addDays(ws,i));
+  const wt=S.tasks.filter(t=>wd.includes(t.date)),wdn=wt.filter(t=>t.done);
+  const rate=wt.length?Math.round(wdn.length/wt.length*100):0,mins=wdn.reduce((a,t)=>a+t.minutes,0);
+  const bySub=SUBJ.map(s=>({s,m:wdn.filter(t=>t.subject===s.id).reduce((a,t)=>a+t.minutes,0)})).filter(x=>x.m>0);
+  const maxS=Math.max(1,...bySub.map(x=>x.m));
+  const perDay=wd.map(d=>{const ts=tasksOn(d);return {d,pl:ts.reduce((a,t)=>a+t.minutes,0),dn:ts.filter(t=>t.done).reduce((a,t)=>a+t.minutes,0)}});
+  const maxD=Math.max(1,...perDay.map(x=>x.pl));
+  const t0=parse(today()),y=t0.getFullYear(),m=t0.getMonth(),days=new Date(y,m+1,0).getDate(),off=(new Date(y,m,1).getDay()+6)%7,mk=`${y}-${pad(m+1)}`;
+  let cells='';for(let i=0;i<off;i++)cells+='<div></div>';
+  for(let i=1;i<=days;i++){const d=`${mk}-${pad(i)}`;cells+=`<div class="cell ${dayStatus(d)} ${d===today()?'today':''}" style="cursor:default">${i}</div>`}
+  const pend=S.redeems.filter(r=>r.status==='wait');
+  return `<section class="px panel pbar"><h2>👨‍👩‍👧 家長畫面</h2><button class="btn sm" data-act="go" data-v="home" data-sfx="back">鎖定並離開</button></section>
+  <section class="px panel"><h2>本週概況</h2><div class="sub">${fmtDate(ws).replace(/ 星期.*/,'')} 起</div><div class="kpis">
+    <div class="kpi">完成率<div class="v">${rate}%</div><small>${wdn.length}/${wt.length} 個任務</small></div>
+    <div class="kpi">讀書時間<div class="v">${mins}</div><small>分鐘(已完成)</small></div>
+    <div class="kpi">連續天數<div class="v">${streak(S)}</div><small>天</small></div>
+    <div class="kpi">等級 / 金幣<div class="v">${lvOf(S.player.xp)}</div><small>${S.player.coins} 金幣 · ${Object.keys(S.badges).length} 徽章</small></div></div>
+    <h3 style="margin:18px 0 4px">每日讀書時間（灰=計畫、綠=完成）</h3>
+    <div class="vbars">${perDay.map(x=>`<div class="vb"><div class="pl" style="height:${x.pl/maxD*100}%"><div class="dn" style="height:${x.pl?x.dn/x.pl*100:0}%"></div></div></div>`).join('')}</div>
+    <div class="vlab">${perDay.map(x=>`<span>${WD[parse(x.d).getDay()]}<br><small class="n">${x.dn}</small></span>`).join('')}</div>
+    <h3 style="margin:18px 0 4px">各科讀書時間（本週已完成）</h3>
+    ${bySub.map(x=>`<div class="hbar"><span class="nm">${x.s.name}</span><span class="tr"><i style="width:${x.m/maxS*100}%;background:${x.s.c}"></i></span><span class="val">${x.m} 分</span></div>`).join('')||'<p class="empty">本週還沒有完成的任務</p>'}</section>
+  <section class="px panel"><h2>${m+1} 月份日曆</h2><div class="cal" style="margin-top:10px">${['一','二','三','四','五','六','日'].map(w=>`<div class="hd">${w}</div>`).join('')}${cells}</div>${legend()}</section>
+  <section class="px panel"><h2>兌換申請 ${pend.length?`<span class="tag wait">${pend.length}</span>`:''}</h2>
+    ${pend.map(r=>`<div class="req"><span>${esc(r.name)} <small>(${r.cost} 金幣 · ${r.date.slice(5)})</small></span><span><button class="btn sm gray" data-act="rv" data-id="${r.id}" data-ok="0" data-sfx="back">退回</button><button class="btn sm green" data-act="rv" data-id="${r.id}" data-ok="1">核准</button></span></div>`).join('')||'<p class="empty">目前沒有待確認的申請</p>'}</section>
+  <section class="px panel"><h2>獎勵商店管理</h2>
+    ${S.rewards.map(r=>`<div class="req"><span>${esc(r.name)} · <b class="n">${r.cost}</b> 金幣</span><button class="btn sm gray" data-act="rwDel" data-id="${r.id}" data-sfx="back">刪除</button></div>`).join('')}
+    <div class="lbl">新增獎勵</div><input type="text" id="rwName" placeholder="例如：週末看一部電影" maxlength="24"><input type="number" id="rwCost" placeholder="需要多少金幣（例如 100）" min="1" max="9999">
+    <button class="btn green" data-act="rwAdd">＋ 新增獎勵</button><div class="sub">參考：完成 1 個任務 = 10 金幣，全部完成再加 20 金幣</div></section>
+  <section class="px panel"><h2>給孩子留言</h2><div class="sub">孩子打開首頁時會看到</div>
+    <div class="chips">${['今天也辛苦了！','你好棒，繼續加油！','我們以你為榮 ❤','記得早點睡喔'].map(s=>`<button class="btn sm white" data-act="quickMsg" data-t="${s}">${s}</button>`).join('')}</div>
+    <textarea id="msgIn" rows="2" maxlength="60" placeholder="輸入想對孩子說的話"></textarea><button class="btn blue" data-act="sendMsg">送出留言</button></section>
+  <section class="px panel"><h2>其他設定</h2>
+    <div class="lbl">修改家長密碼（4 位數字）</div><input type="text" id="pinIn" inputmode="numeric" maxlength="4" placeholder="新密碼"><button class="btn" data-act="pinSave">更新密碼</button>
+    <div class="lbl">資料</div><button class="btn red" data-act="resetAsk" data-sfx="error">清空所有資料重新開始</button><button class="btn white" data-act="demoAsk">重新載入示範資料</button>
+    <div class="lbl">英雄角色（目前：${avOf(S.player.avatar)?avOf(S.player.avatar).name:'尚未選擇'}）</div><button class="btn white" data-act="heroReset">解除鎖定，讓孩子重新選英雄</button>
+    <div class="sub">此試作版的資料只存在這台裝置的這個瀏覽器裡。</div></section>`;
+};
+function navHTML(){
+  const it=[['home','首頁'],['plan','計畫'],['focus','專注'],['reward','獎勵'],['set','設定']];
+  return `<div class="navlogo n">STUDY<br>QUEST</div>`+it.map(([k,n])=>`<button class="navb ${view===k?'on':''}" data-act="go" data-v="${k}" data-sfx="nav">${IC[k]}<span>${n}</span></button>`).join('');
+}
+function render(){if(view==='parent'&&!parentOK)view='home';const v=(!avOf(S.player.avatar)&&view!=='parent')?'pick':view;document.body.classList.toggle('picking',v==='pick');$('#main').innerHTML=(V[v]||V.home)();$('#nav').innerHTML=navHTML();syncMusic()}
+function go(v){if(v!=='parent')parentOK=false;view=v;render();window.scrollTo(0,0)}
+
+/* =================== add-task modal =================== */
+function addTaskModal(date){Object.assign(NF,{date,subject:'math',title:'',minutes:20});modal('','');drawAdd()}
+function drawAdd(){const s=subj(NF.subject);mbox().innerHTML=`<h3>＋ 新增任務</h3><div class="sub">${fmtDate(NF.date)}</div>
+  <div class="lbl">科目</div><div class="chips">${SUBJ.map(x=>`<button class="btn sm" style="--bg:${NF.subject===x.id?x.c:'#f4f4f4'};--fg:${NF.subject===x.id?'#fff':'#1a1c2c'}" data-act="nfS" data-id="${x.id}">${x.name}</button>`).join('')}</div>
+  <div class="lbl">要做什麼？</div><input type="text" id="nfT" maxlength="20" placeholder="${s.tip[0]}" value="${esc(NF.title)}">
+  <div class="chips">${s.tip.map(t=>`<button class="btn sm white" data-act="nfTip" data-t="${t}">${t}</button>`).join('')}</div>
+  <div class="lbl">預計時間</div><div class="chips">${[10,15,20,25,30,45,60].map(m=>`<button class="btn sm ${NF.minutes===m?'on':'white'}" data-act="nfM" data-m="${m}">${m}分</button>`).join('')}</div>
+  <div class="mact"><button class="btn gray" data-act="close" data-sfx="back">取消</button><button class="btn green" data-act="nfOK" data-sfx="pop">新增！</button></div>`}
+
+/* =================== actions =================== */
+const A={
+  startGame(){audioInit();$('#start').remove();SFX.play('start');render()},
+  go(el){if(el.dataset.tab)planTab=el.dataset.tab;go(el.dataset.v)},
+  close(){closeModal()},
+  toggle(el){const t=S.tasks.find(x=>x.id===el.dataset.id);if(!t)return;
+    if(!t.done)completeTask(t.id);
+    else{SFX.play('click');modal(`<h3>要取消完成嗎？</h3><p>「${esc(t.title)}」會變回未完成，並扣回 20 EXP、10 金幣。</p><div class="mact"><button class="btn gray" data-act="close" data-sfx="back">不要</button><button class="btn red" data-act="undo" data-id="${t.id}">取消完成</button></div>`)}},
+  undo(el){closeModal();uncompleteTask(el.dataset.id)},
+  delTask(el){S.tasks=S.tasks.filter(t=>t.id!==el.dataset.id);save();render()},
+  addTask(el){addTaskModal(el.dataset.date)},
+  nfS(el){NF.subject=el.dataset.id;drawAdd()},
+  nfTip(el){NF.title=el.dataset.t;drawAdd()},
+  nfM(el){NF.minutes=+el.dataset.m;drawAdd()},
+  nfOK(){const s=subj(NF.subject);S.tasks.push({id:uid(),date:NF.date,subject:NF.subject,title:(NF.title||'').trim()||s.tip[0],minutes:NF.minutes,done:false});
+    closeModal();floatText('任務新增！');checkBadges();save();render()},
+  copyNext(el){const d=el.dataset.date,n=addDays(d,1);tasksOn(d).forEach(t=>S.tasks.push({id:uid(),date:n,subject:t.subject,title:t.title,minutes:t.minutes,done:false}));
+    planDate=n;floatText('已複製到隔天');checkBadges();save();render()},
+  tab(el){planTab=el.dataset.tab;render()},
+  pd(el){planDate=addDays(planDate,+el.dataset.n);render()},
+  pdToday(){planDate=today();render()},
+  pm(el){const d=parse(planDate);d.setDate(1);d.setMonth(d.getMonth()+(+el.dataset.n));planDate=ymd(d);render()},
+  openDay(el){planDate=el.dataset.date;planTab='day';go('plan')},
+  goalAdd(el){const v=($('#goalIn').value||'').trim();if(!v){SFX.play('error');return}S.monthGoals.push({id:uid(),month:el.dataset.m,title:v,done:false});save();render()},
+  goalDel(el){S.monthGoals=S.monthGoals.filter(g=>g.id!==el.dataset.id);save();render()},
+  goalT(el){const g=S.monthGoals.find(x=>x.id===el.dataset.id);if(!g)return;g.done=!g.done;
+    if(g.done){SFX.play('level');confetti();gain(50,30);checkBadges()}else{SFX.play('back');S.player.xp=Math.max(0,S.player.xp-50);S.player.coins=Math.max(0,S.player.coins-30)}save();render()},
+  readMsg(el){const m=S.messages.find(x=>x.id===el.dataset.id);if(m)m.read=true;SFX.play('pop');save();render()},
+  focusTask(el){F.taskId=el.dataset.id;const t=S.tasks.find(x=>x.id===F.taskId);if(t)F.min=[10,15,25,40].includes(t.minutes)?t.minutes:Math.min(40,t.minutes);go('focus')},
+  fTask(el){F.taskId=el.dataset.id||null;render()},
+  fMin(el){F.min=+el.dataset.m;render()},
+  fStart(){SFX.play('start');F.total=F.min*60;F.left=F.total;F.endAt=Date.now()+F.total*1000;F.running=true;F.paused=false;F.lastBeep=-1;
+    clearInterval(F.iv);F.iv=setInterval(focusTick,250);render()},
+  fPause(){if(F.paused){F.endAt=Date.now()+F.left*1000;F.paused=false}else{F.left=Math.max(0,Math.ceil((F.endAt-Date.now())/1000));F.paused=true}render()},
+  fQuit(){modal(`<h3>要放棄這次專注嗎？</h3><p>放棄的話這次不會得到獎勵喔。</p><div class="mact"><button class="btn green" data-act="close">繼續加油</button><button class="btn gray" data-act="fQuitOK" data-sfx="back">放棄</button></div>`)},
+  fQuitOK(){clearInterval(F.iv);F.running=false;F.paused=false;closeModal();render()},
+  focusDoneTask(el){closeModal();completeTask(el.dataset.id)},
+  redeem(el){const r=S.rewards.find(x=>x.id===el.dataset.id);if(!r)return;
+    if(S.player.coins<r.cost){SFX.play('error');floatText(`還差 ${r.cost-S.player.coins} 金幣`);return}
+    SFX.play('click');modal(`<div class="big"><h3>確定兌換？</h3><div style="width:80px;margin:0 auto">${CHEST}</div><p>${esc(r.name)}<br>需要 <b class="n">${r.cost}</b> 金幣</p></div>
+      <div class="mact"><button class="btn gray" data-act="close" data-sfx="back">再想想</button><button class="btn green" data-act="redeemOK" data-id="${r.id}" data-sfx="coin">兌換！</button></div>`)},
+  redeemOK(el){const r=S.rewards.find(x=>x.id===el.dataset.id);closeModal();if(!r||S.player.coins<r.cost)return;
+    S.player.coins-=r.cost;S.redeems.push({id:uid(),name:r.name,cost:r.cost,status:'wait',date:today()});confetti();floatText('已送出！等爸媽確認');save();render()},
+  badgeInfo(el){const b=BADGES.find(x=>x.id===el.dataset.id);const got=S.badges[b.id];
+    modal(`<div class="big"><div style="width:80px;margin:0 auto;${got?'':'filter:grayscale(1);opacity:.5'}">${MEDAL(b.c)}</div><h3>${got?b.name:'？？？'}</h3><p>${b.desc}</p>${got?`<small>${got} 獲得</small>`:'<small>還沒獲得，加油！</small>'}</div><div class="mact"><button class="btn" data-act="close">OK</button></div>`)},
+  pickHero(el){pickSel=el.dataset.id;SFX.play(avOf(pickSel).sfx);render()},
+  pickOK(){const a=avOf(pickSel);if(!a)return;SFX.play('click');
+    modal(`<div class="big"><h3>確定選擇「${a.name}」？</h3><div class="hero" style="display:inline-block">${hero(1,a.id)}</div>
+      <p style="color:var(--r)"><b>⚠ 英雄一旦鎖定，就不能再更換囉！</b></p></div>
+      <div class="mact"><button class="btn gray" data-act="close" data-sfx="back">再想想</button><button class="btn red" data-act="pickLock" data-sfx="none">🔒 確定鎖定</button></div>`)},
+  pickLock(){const a=avOf(pickSel);if(!a)return;S.player.avatar=a.id;S.player.avatarLocked=true;save();closeModal();SFX.play('lock');confetti();
+    floatText(a.say);view='home';render();window.scrollTo(0,0)},
+  avLocked(el){SFX.play(el.dataset.id===S.player.avatar?avOf(el.dataset.id).sfx:'error');
+    if(el.dataset.id!==S.player.avatar)modal(`<div class="big"><h3>🔒 英雄已鎖定</h3><div class="hero" style="display:inline-block">${hero(lvOf(S.player.xp))}</div>
+      <p>你已經選了「${avOf(S.player.avatar).name}」當你的英雄，<br>不能再更換囉！一起陪他升級吧！</p></div><div class="mact"><button class="btn green" data-act="close">好的！</button></div>`)},
+  heroReset(){modal(`<h3>讓孩子重新選英雄？</h3><p>孩子下次打開時，會回到「選擇你的英雄」畫面重新挑選（等級、金幣不受影響）。</p><div class="mact"><button class="btn gray" data-act="close" data-sfx="back">取消</button><button class="btn red" data-act="heroResetOK">確定</button></div>`)},
+  heroResetOK(){S.player.avatar=null;S.player.avatarLocked=false;pickSel=null;save();closeModal();floatText('已解除鎖定');render()},
+  tgl(el){const k=el.dataset.k;S.settings[k]=!S.settings[k];applyVol();save();if(k==='musicOn'&&!S.settings.musicOn)stopMusic();render()},
+  test(el){SFX.play(el.dataset.s)},
+  saveName(){const v=($('#nameIn').value||'').trim();if(!v){SFX.play('error');return}S.player.name=v;save();floatText('已儲存');render()},
+  openParent(){pinBuf='';modal('','');drawPin()},
+  pk(el){const k=el.dataset.k;if(k==='c')pinBuf='';else if(pinBuf.length<4)pinBuf+=k;drawPin();
+    if(pinBuf.length===4){if(pinBuf===S.pin){parentOK=true;closeModal();SFX.play('done');view='parent';render();window.scrollTo(0,0)}
+      else{SFX.play('error');pinBuf='';const b=mbox();b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');setTimeout(drawPin,300)}}},
+  rv(el){const r=S.redeems.find(x=>x.id===el.dataset.id);if(!r)return;if(el.dataset.ok==='1'){r.status='ok';confetti()}else{r.status='no';S.player.coins+=r.cost}save();render()},
+  rwDel(el){S.rewards=S.rewards.filter(r=>r.id!==el.dataset.id);save();render()},
+  rwAdd(){const n=($('#rwName').value||'').trim(),c=parseInt($('#rwCost').value,10);if(!n||!(c>0)){SFX.play('error');return}S.rewards.push({id:uid(),name:n,cost:c});save();render()},
+  quickMsg(el){$('#msgIn').value=el.dataset.t},
+  sendMsg(){const v=($('#msgIn').value||'').trim();if(!v){SFX.play('error');return}S.messages.push({id:uid(),text:v,date:today(),read:false});save();floatText('留言已送出');render()},
+  pinSave(){const v=($('#pinIn').value||'').trim();if(!/^\d{4}$/.test(v)){SFX.play('error');floatText('請輸入 4 位數字');return}S.pin=v;save();floatText('密碼已更新');render()},
+  resetAsk(){modal(`<h3>確定要清空？</h3><p>所有任務、金幣、徽章都會被刪除，無法復原。</p><div class="mact"><button class="btn gray" data-act="close" data-sfx="back">取消</button><button class="btn red" data-act="resetOK">清空</button></div>`)},
+  resetOK(){const pin=S.pin;S=blank();S.pin=pin;pickSel=null;save();closeModal();render()},
+  demoAsk(){modal(`<h3>載入示範資料？</h3><p>目前的資料會被示範資料取代。</p><div class="mact"><button class="btn gray" data-act="close" data-sfx="back">取消</button><button class="btn green" data-act="demoOK">載入</button></div>`)},
+  demoOK(){const pin=S.pin,av=S.player.avatar;S=seed();S.pin=pin;if(av){S.player.avatar=av;S.player.avatarLocked=true}save();closeModal();render()},
+};
+function drawPin(){mbox().innerHTML=`<h3 style="text-align:center">🔒 家長密碼</h3><div class="pin">${[0,1,2,3].map(i=>`<i>${pinBuf[i]?'●':''}</i>`).join('')}</div>
+  <div class="pad">${['1','2','3','4','5','6','7','8','9','c','0','x'].map(k=>k==='x'?`<button class="btn gray" data-act="close" data-sfx="back">取消</button>`:k==='c'?`<button class="btn white" data-act="pk" data-k="c">清除</button>`:`<button class="btn white" data-act="pk" data-k="${k}" data-sfx="none">${k}</button>`).join('')}</div>
+  <div class="sub" style="text-align:center;margin-top:8px">預設密碼 0000</div>`}
+
+/* global click: every button makes a sound */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('button,[data-act]');if(!el)return;
+  audioInit();
+  const s=el.dataset.sfx;
+  if(s!=='none')SFX.play(s||'click');
+  else if(el.dataset.act==='pk')SFX.play('beep');
+  const a=el.dataset.act;if(a&&A[a])A[a](el,e);
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='nfT')NF.title=t.value;
+  if(t.dataset.vol){S.settings[t.dataset.vol]=t.value/100;applyVol();save()}
+});
+document.addEventListener('change',e=>{if(e.target.dataset.vol==='sfx')SFX.play('click')});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='nfT'){e.preventDefault();A.nfOK()}});
+
+$('#startHero').innerHTML=`<div class="bob">${hero(lvOf(S.player.xp))}</div>`;
+render();
+})();
+</script>
+</body>
+</html>
